@@ -1,0 +1,1624 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#11212F" id="meta-theme-color" />
+  <title>HotelDesk Lite — Gestión Operativa</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Dexie.js CDN para IndexedDB -->
+  <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+
+  <style>
+    /* ==========================================================================
+       1. VARIABLES CSS Y SISTEMA DE TEMAS (ALTO CONTRASTE)
+       ========================================================================== */
+    :root {
+      /* Modo Oscuro (Por Defecto) */
+      --bg-primary: #11212F;
+      --bg-surface: #182C3E;
+      --bg-surface-elevated: #1F384F;
+      --bg-input: #0D1924;
+
+      --accent: #F7C35A;
+      --accent-hover: #F9CE75;
+      --accent-soft: rgba(247, 195, 90, 0.16);
+      --accent-border: rgba(247, 195, 90, 0.42);
+
+      --text-primary: #FFFFFF;
+      --text-secondary: rgba(255, 255, 255, 0.72);
+      --text-muted: rgba(255, 255, 255, 0.45);
+      --text-on-accent: #11212F;
+
+      --border-subtle: rgba(255, 255, 255, 0.1);
+      --shadow-card: 0 10px 25px -5px rgba(5, 12, 18, 0.55);
+      --shadow-accent: 0 6px 18px rgba(247, 195, 90, 0.28);
+      --header-bg: rgba(17, 33, 47, 0.94);
+      --success-badge: #2ecc71;
+      --success-badge-bg: rgba(46, 204, 113, 0.15);
+
+      --radius-sm: 10px;
+      --radius-md: 14px;
+      --radius-lg: 18px;
+      --radius-pill: 9999px;
+
+      --transition-fast: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-smooth: 320ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Modo Claro */
+    [data-theme="light"] {
+      --bg-primary: #F8F9FA;
+      --bg-surface: #FFFFFF;
+      --bg-surface-elevated: #EDF2F7;
+      --bg-input: #FFFFFF;
+
+      --accent: #F7C35A;
+      --accent-hover: #EBB547;
+      --accent-soft: rgba(247, 195, 90, 0.22);
+      --accent-border: rgba(247, 195, 90, 0.6);
+
+      --text-primary: #11212F;
+      --text-secondary: #4A5568;
+      --text-muted: #718096;
+      --text-on-accent: #11212F;
+
+      --border-subtle: #E2E8F0;
+      --shadow-card: 0 4px 18px rgba(17, 33, 47, 0.08);
+      --shadow-accent: 0 6px 18px rgba(247, 195, 90, 0.35);
+      --header-bg: rgba(248, 249, 250, 0.94);
+      --success-badge: #16a34a;
+      --success-badge-bg: rgba(22, 163, 74, 0.14);
+    }
+
+    /* ==========================================================================
+       2. RESET Y TIPOGRAFÍA BASE
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      min-height: 100%;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      transition: background-color var(--transition-smooth), color var(--transition-smooth);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Shell Mobile-First */
+    .app-shell {
+      width: 100%;
+      max-width: 520px;
+      min-height: 100dvh;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--bg-primary);
+      position: relative;
+      padding-bottom: 5.5rem; /* Espacio para el botón flotante */
+      transition: background-color var(--transition-smooth);
+    }
+
+    /* ==========================================================================
+       3. CABECERA, BRANDING Y SELECTOR DE TEMA
+       ========================================================================== */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 25;
+      background-color: var(--header-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 1.1rem 1.15rem 0.75rem;
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+    }
+
+    .brand-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .brand-identity {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-md);
+      background-color: var(--accent-soft);
+      border: 1.5px solid var(--accent-border);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .brand-icon svg {
+      width: 23px;
+      height: 23px;
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      line-height: 1.15;
+    }
+
+    .brand-accent {
+      color: var(--accent);
+    }
+
+    .brand-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Botón de alternancia de tema (Sol / Luna) */
+    .theme-toggle-btn {
+      appearance: none;
+      border: 1.5px solid var(--border-subtle);
+      background-color: var(--bg-surface);
+      color: var(--accent);
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--shadow-card);
+      transition: transform var(--transition-fast), background-color var(--transition-smooth), border-color var(--transition-smooth);
+    }
+
+    .theme-toggle-btn:hover {
+      border-color: var(--accent);
+      transform: scale(1.05);
+    }
+
+    .theme-toggle-btn:active {
+      transform: scale(0.92);
+    }
+
+    .theme-toggle-btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .theme-toggle-btn svg {
+      width: 22px;
+      height: 22px;
+      transition: transform var(--transition-smooth);
+    }
+
+    /* Mostrar icono sol en oscuro, luna en claro */
+    [data-theme="dark"] .icon-moon { display: none; }
+    [data-theme="dark"] .icon-sun { display: block; }
+    [data-theme="light"] .icon-sun { display: none; }
+    [data-theme="light"] .icon-moon { display: block; color: var(--text-primary); }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: var(--radius-pill);
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      white-space: nowrap;
+      transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    /* ==========================================================================
+       4. NAVEGACIÓN POR PESTAÑAS (3 TABS: HABITACIONES, PEDIDOS, HISTORIAL)
+       ========================================================================== */
+    .tabs-nav {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.35rem;
+      background-color: var(--bg-input);
+      padding: 0.35rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+    }
+
+    .tab-btn {
+      appearance: none;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 700;
+      min-height: 48px;
+      padding: 0.5rem 0.35rem;
+      border-radius: var(--radius-sm);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+      cursor: pointer;
+      position: relative;
+      user-select: none;
+      transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+    }
+
+    @media (min-width: 400px) {
+      .tab-btn {
+        flex-direction: row;
+        font-size: 0.82rem;
+        gap: 0.4rem;
+      }
+    }
+
+    .tab-btn:active {
+      transform: scale(0.97);
+    }
+
+    .tab-btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .tab-icon {
+      width: 17px;
+      height: 17px;
+      flex-shrink: 0;
+    }
+
+    .tab-label {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tab-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 0.35rem;
+      border-radius: var(--radius-pill);
+      font-size: 0.72rem;
+      font-weight: 800;
+      background-color: rgba(125, 125, 125, 0.2);
+      color: var(--text-primary);
+      transition: background-color var(--transition-fast), color var(--transition-fast);
+    }
+
+    .tab-btn.active {
+      background-color: var(--accent);
+      color: var(--text-on-accent);
+      box-shadow: var(--shadow-accent);
+    }
+
+    .tab-btn.active .tab-badge {
+      background-color: var(--bg-primary);
+      color: var(--accent);
+    }
+
+    /* ==========================================================================
+       5. PANELES Y FORMULARIOS TÁCTILES
+       ========================================================================== */
+    .app-main {
+      flex: 1;
+      padding: 1.15rem;
+    }
+
+    .tab-panel {
+      animation: panelFadeIn 240ms ease-out;
+    }
+
+    .tab-panel[hidden] {
+      display: none !important;
+    }
+
+    @keyframes panelFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .panel-card-form {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1rem;
+      box-shadow: var(--shadow-card);
+      margin-bottom: 1.35rem;
+      transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+    }
+
+    .input-group {
+      display: flex;
+      gap: 0.65rem;
+      align-items: stretch;
+    }
+
+    .input-wrapper {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-prefix {
+      position: absolute;
+      left: 0.95rem;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--accent);
+      pointer-events: none;
+    }
+
+    .task-input {
+      width: 100%;
+      min-height: 52px;
+      padding: 0.75rem 1rem;
+      background-color: var(--bg-input);
+      border: 1.5px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 1rem; /* 16px previene auto-zoom en iOS Safari */
+      font-weight: 600;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-smooth);
+    }
+
+    .task-input.with-prefix {
+      padding-left: 3.3rem;
+    }
+
+    .task-input::placeholder {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .task-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .btn-primary {
+      appearance: none;
+      border: none;
+      background-color: var(--accent);
+      color: var(--text-on-accent);
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 800;
+      min-height: 52px;
+      padding: 0 1.15rem;
+      border-radius: var(--radius-md);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      flex-shrink: 0;
+      box-shadow: var(--shadow-accent);
+      transition: background-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.96);
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--text-primary);
+      outline-offset: 2px;
+    }
+
+    .btn-icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    .form-feedback {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-top: 0.55rem;
+      min-height: 1.2rem;
+      display: none;
+    }
+
+    .form-feedback.visible {
+      display: block;
+    }
+
+    /* ==========================================================================
+       6. LISTA DE TAREAS Y TARJETAS
+       ========================================================================== */
+    .list-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      padding: 0 0.2rem;
+    }
+
+    .list-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+    }
+
+    .task-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .task-item {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid var(--accent);
+      border-radius: var(--radius-lg);
+      padding: 0.95rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.85rem;
+      box-shadow: var(--shadow-card);
+      animation: itemSlideIn 260ms cubic-bezier(0.22, 1, 0.36, 1);
+      transition: opacity var(--transition-smooth), transform var(--transition-smooth), background-color var(--transition-smooth), border-color var(--transition-smooth);
+    }
+
+    @keyframes itemSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .task-info {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .room-badge {
+      min-width: 52px;
+      height: 52px;
+      padding: 0 0.5rem;
+      border-radius: var(--radius-md);
+      background-color: var(--accent-soft);
+      border: 1.5px solid var(--accent-border);
+      color: var(--accent);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .room-badge-label {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      line-height: 1;
+      opacity: 0.85;
+    }
+
+    .room-badge-number {
+      font-size: 1.15rem;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .order-icon-box {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      background-color: var(--accent-soft);
+      border: 1.5px solid var(--accent-border);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .order-icon-box svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .task-text-group {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .task-primary-text {
+      font-size: 1.02rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      word-break: break-word;
+      transition: color var(--transition-fast), text-decoration-color var(--transition-fast);
+    }
+
+    .task-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 0.2rem;
+    }
+
+    /* Botón Resolver */
+    .btn-resolve {
+      appearance: none;
+      border: 1.5px solid var(--accent);
+      background-color: var(--accent-soft);
+      color: var(--accent);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 800;
+      min-height: 46px;
+      padding: 0 0.95rem;
+      border-radius: var(--radius-md);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .btn-resolve svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    .btn-resolve:hover {
+      background-color: var(--accent);
+      color: var(--text-on-accent);
+      box-shadow: var(--shadow-accent);
+    }
+
+    .btn-resolve:active {
+      transform: scale(0.94);
+    }
+
+    .btn-resolve:focus-visible {
+      outline: 2px solid var(--text-primary);
+      outline-offset: 2px;
+    }
+
+    /* Animación Suave al Resolver */
+    .task-item.resolving {
+      pointer-events: none;
+      background-color: rgba(247, 195, 90, 0.12);
+      border-color: var(--accent);
+      opacity: 0;
+      transform: translateX(28px) scale(0.96);
+    }
+
+    .task-item.resolving .task-primary-text {
+      text-decoration: line-through;
+      text-decoration-thickness: 2px;
+      text-decoration-color: var(--accent);
+      color: var(--text-secondary);
+    }
+
+    .task-item.resolving .btn-resolve {
+      background-color: var(--accent);
+      color: var(--text-on-accent);
+    }
+
+    /* ==========================================================================
+       7. HISTORIAL (PESTAÑA 3)
+       ========================================================================== */
+    .history-item {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid var(--success-badge);
+      border-radius: var(--radius-lg);
+      padding: 0.9rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.85rem;
+      box-shadow: var(--shadow-card);
+      animation: itemSlideIn 240ms ease-out;
+      transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+    }
+
+    .history-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .history-type-badge.habitacion {
+      background-color: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid var(--accent-border);
+    }
+
+    .history-type-badge.pedido {
+      background-color: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+
+    .history-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: var(--radius-pill);
+      background-color: var(--success-badge-bg);
+      color: var(--success-badge);
+      font-size: 0.78rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .history-status-badge svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* ==========================================================================
+       8. BOTÓN FLOTANTE DE EMERGENCIA (FAB)
+       ========================================================================== */
+    .fab-emergency {
+      position: fixed;
+      bottom: 1.35rem;
+      right: 1.35rem;
+      z-index: 40;
+      background-color: var(--accent);
+      color: var(--text-on-accent);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.85rem 1.25rem;
+      border-radius: var(--radius-pill);
+      font-size: 0.92rem;
+      font-weight: 800;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), var(--shadow-accent);
+      border: 2px solid rgba(17, 33, 47, 0.15);
+      transition: transform var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+      user-select: none;
+    }
+
+    .fab-emergency:hover {
+      background-color: var(--accent-hover);
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4), var(--shadow-accent);
+    }
+
+    .fab-emergency:active {
+      transform: translateY(1px) scale(0.96);
+    }
+
+    .fab-emergency:focus-visible {
+      outline: 3px solid var(--text-primary);
+      outline-offset: 3px;
+    }
+
+    .fab-icon-box {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .fab-icon-box svg {
+      width: 20px;
+      height: 20px;
+      animation: phonePulse 2.8s infinite ease-in-out;
+    }
+
+    @keyframes phonePulse {
+      0%, 100% { transform: rotate(0deg); }
+      10%, 30% { transform: rotate(-12deg); }
+      20%, 40% { transform: rotate(12deg); }
+      50% { transform: rotate(0deg); }
+    }
+
+    /* ==========================================================================
+       9. ESTADO VACÍO Y TOAST
+       ========================================================================== */
+    .empty-state {
+      background-color: var(--bg-surface);
+      border: 1px dashed var(--accent-border);
+      border-radius: var(--radius-lg);
+      padding: 2.3rem 1.3rem;
+      text-align: center;
+      margin-top: 0.5rem;
+      animation: panelFadeIn 280ms ease-out;
+      transition: background-color var(--transition-smooth), border-color var(--transition-smooth);
+    }
+
+    .empty-icon {
+      width: 54px;
+      height: 54px;
+      margin: 0 auto 0.85rem;
+      border-radius: 50%;
+      background-color: var(--accent-soft);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .empty-icon svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    .empty-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .empty-desc {
+      font-size: 0.86rem;
+      color: var(--text-secondary);
+      max-width: 280px;
+      margin: 0 auto;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 5.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      background-color: var(--accent);
+      color: var(--text-on-accent);
+      font-size: 0.86rem;
+      font-weight: 800;
+      padding: 0.65rem 1.15rem;
+      border-radius: var(--radius-pill);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+      white-space: nowrap;
+      animation: toastIn 200ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translate(-50%, 12px);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+    }
+
+    @media (max-width: 360px) {
+      .input-group {
+        flex-direction: column;
+      }
+      .btn-primary {
+        width: 100%;
+      }
+      .fab-label {
+        display: none;
+      }
+      .fab-emergency {
+        padding: 0.85rem;
+        border-radius: 50%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Cabecera Principal -->
+    <header class="app-header">
+      <div class="brand-bar">
+        <div class="brand-identity">
+          <div class="brand-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 21h18" />
+              <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16" />
+              <path d="M9 7h2" />
+              <path d="M13 7h2" />
+              <path d="M9 11h2" />
+              <path d="M13 11h2" />
+              <path d="M9 15h2" />
+              <path d="M13 15h2" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="brand-title">HotelDesk <span class="brand-accent">Lite</span></h1>
+            <p class="brand-subtitle">Control operativo en tiempo real</p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button type="button" id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Cambiar a modo claro" title="Alternar tema">
+            <!-- Icono Sol (Modo Oscuro -> Cambia a Claro) -->
+            <svg class="theme-icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="5" />
+              <line x1="12" y1="1" x2="12" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="23" />
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+              <line x1="1" y1="12" x2="3" y2="12" />
+              <line x1="21" y1="12" x2="23" y2="12" />
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+            </svg>
+            <!-- Icono Luna (Modo Claro -> Cambia a Oscuro) -->
+            <svg class="theme-icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          </button>
+
+          <div class="status-pill" id="total-pending-pill" aria-live="polite">
+            <span class="status-dot"></span>
+            <span id="total-pending-text">0 pendientes</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barra de Navegación por Pestañas (3 Tabs) -->
+      <nav class="tabs-nav" role="tablist" aria-label="Secciones operativas">
+        <button
+          type="button"
+          class="tab-btn active"
+          id="tab-btn-rooms"
+          role="tab"
+          aria-selected="true"
+          aria-controls="panel-rooms"
+          data-target="panel-rooms"
+        >
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M2 4v16" />
+            <path d="M2 8h18a2 2 0 0 1 2 2v10" />
+            <path d="M2 17h20" />
+            <path d="M6 8v9" />
+          </svg>
+          <span class="tab-label">Habitaciones</span>
+          <span class="tab-badge" id="badge-rooms">0</span>
+        </button>
+
+        <button
+          type="button"
+          class="tab-btn"
+          id="tab-btn-orders"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-orders"
+          data-target="panel-orders"
+        >
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+          <span class="tab-label">Pedidos</span>
+          <span class="tab-badge" id="badge-orders">0</span>
+        </button>
+
+        <button
+          type="button"
+          class="tab-btn"
+          id="tab-btn-history"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-history"
+          data-target="panel-history"
+        >
+          <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          <span class="tab-label">Historial</span>
+          <span class="tab-badge" id="badge-history">0</span>
+        </button>
+      </nav>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="app-main">
+      <!-- SECCIÓN 1: HABITACIONES SUCIAS -->
+      <section
+        id="panel-rooms"
+        class="tab-panel active"
+        role="tabpanel"
+        aria-labelledby="tab-btn-rooms"
+      >
+        <div class="panel-card-form">
+          <form id="form-rooms" class="task-form" autocomplete="off">
+            <label for="input-room" class="sr-only">Número de habitación</label>
+            <div class="input-group">
+              <div class="input-wrapper">
+                <span class="input-prefix" aria-hidden="true">Hab.</span>
+                <input
+                  type="text"
+                  id="input-room"
+                  class="task-input with-prefix"
+                  inputmode="numeric"
+                  placeholder="Ej: 304, 102B..."
+                  maxlength="12"
+                  required
+                />
+              </div>
+              <button type="submit" class="btn-primary" aria-label="Añadir habitación">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span>Añadir</span>
+              </button>
+            </div>
+            <p id="feedback-rooms" class="form-feedback" role="alert" aria-live="assertive"></p>
+          </form>
+        </div>
+
+        <div class="list-header">
+          <h2 class="list-title">Habitaciones pendientes de limpieza</h2>
+        </div>
+
+        <ul id="list-rooms" class="task-list" aria-live="polite"></ul>
+
+        <div id="empty-rooms" class="empty-state" hidden>
+          <div class="empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </div>
+          <h3 class="empty-title">¡Todo impecable!</h3>
+          <p class="empty-desc">No hay habitaciones pendientes de aseo en este momento.</p>
+        </div>
+      </section>
+
+      <!-- SECCIÓN 2: PEDIDOS DE HUÉSPEDES -->
+      <section
+        id="panel-orders"
+        class="tab-panel"
+        role="tabpanel"
+        aria-labelledby="tab-btn-orders"
+        hidden
+      >
+        <div class="panel-card-form">
+          <form id="form-orders" class="task-form" autocomplete="off">
+            <label for="input-order" class="sr-only">Descripción del pedido del huésped</label>
+            <div class="input-group">
+              <div class="input-wrapper">
+                <input
+                  type="text"
+                  id="input-order"
+                  class="task-input"
+                  placeholder="Ej: Hab 205 - 2 toallas extra..."
+                  maxlength="120"
+                  required
+                />
+              </div>
+              <button type="submit" class="btn-primary" aria-label="Añadir pedido">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span>Añadir</span>
+              </button>
+            </div>
+            <p id="feedback-orders" class="form-feedback" role="alert" aria-live="assertive"></p>
+          </form>
+        </div>
+
+        <div class="list-header">
+          <h2 class="list-title">Solicitudes activas de huéspedes</h2>
+        </div>
+
+        <ul id="list-orders" class="task-list" aria-live="polite"></ul>
+
+        <div id="empty-orders" class="empty-state" hidden>
+          <div class="empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+          </div>
+          <h3 class="empty-title">Sin pedidos pendientes</h3>
+          <p class="empty-desc">Todas las solicitudes de huéspedes han sido atendidas.</p>
+        </div>
+      </section>
+
+      <!-- SECCIÓN 3: HISTORIAL DE TAREAS RESUELTAS -->
+      <section
+        id="panel-history"
+        class="tab-panel"
+        role="tabpanel"
+        aria-labelledby="tab-btn-history"
+        hidden
+      >
+        <div class="list-header">
+          <h2 class="list-title">Registro de tareas completadas</h2>
+        </div>
+
+        <ul id="list-history" class="task-list" aria-live="polite"></ul>
+
+        <div id="empty-history" class="empty-state" hidden>
+          <div class="empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          </div>
+          <h3 class="empty-title">Sin registros en el historial</h3>
+          <p class="empty-desc">Las tareas resueltas en Habitaciones y Pedidos se archivarán aquí automáticamente.</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Botón Flotante de Emergencia (FAB: Llamar al Gerente) -->
+    <a href="tel:+18005554683" class="fab-emergency" aria-label="Llamar al Gerente de Emergencia">
+      <span class="fab-icon-box" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+        </svg>
+      </span>
+      <span class="fab-label">Llamar al Gerente</span>
+    </a>
+
+    <!-- Notificación Toast flotante para feedback inmediato -->
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden>
+      <span id="toast-message"></span>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       10. JAVASCRIPT INTEGRADO: DEXIE.JS (INDEXEDDB), TEMAS Y FLUJO REACTIVO
+       ========================================================================== -->
+  <script>
+    /* --------------------------------------------------------------------------
+       A. Configuración de Base de Datos Local con Dexie.js (IndexedDB)
+       Store: tareas -> ++id, tipo ('habitacion' | 'pedido'), descripcion, resuelta (0/1), fecha
+       -------------------------------------------------------------------------- */
+    const db = new Dexie('HotelDeskDB');
+    db.version(1).stores({
+      tareas: '++id, tipo, resuelta, fecha'
+    });
+
+    // Semilla inicial si la base de datos está totalmente vacía
+    async function seedInitialDataIfEmpty() {
+      const count = await db.tareas.count();
+      if (count === 0) {
+        const now = Date.now();
+        await db.tareas.bulkAdd([
+          {
+            tipo: 'habitacion',
+            descripcion: '304',
+            resuelta: 0,
+            fecha: new Date(now - 1000 * 60 * 18).toISOString()
+          },
+          {
+            tipo: 'habitacion',
+            descripcion: '108',
+            resuelta: 0,
+            fecha: new Date(now - 1000 * 60 * 5).toISOString()
+          },
+          {
+            tipo: 'pedido',
+            descripcion: 'Hab. 205 — 2 toallas extra y almohada hipoalergénica',
+            resuelta: 0,
+            fecha: new Date(now - 1000 * 60 * 10).toISOString()
+          },
+          {
+            tipo: 'habitacion',
+            descripcion: '201',
+            resuelta: 1,
+            fecha: new Date(now - 1000 * 60 * 45).toISOString()
+          }
+        ]);
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       B. Sistema de Temas (Claro / Oscuro) con Persistencia en localStorage
+       -------------------------------------------------------------------------- */
+    const THEME_STORAGE_KEY = 'hoteldesk_theme_pref';
+    const htmlEl = document.documentElement;
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    const metaThemeColor = document.getElementById('meta-theme-color');
+
+    function applyTheme(theme) {
+      htmlEl.setAttribute('data-theme', theme);
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+      if (theme === 'light') {
+        themeToggleBtn.setAttribute('aria-label', 'Cambiar a modo oscuro');
+        metaThemeColor.setAttribute('content', '#F8F9FA');
+      } else {
+        themeToggleBtn.setAttribute('aria-label', 'Cambiar a modo claro');
+        metaThemeColor.setAttribute('content', '#11212F');
+      }
+    }
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+      if (savedTheme) {
+        applyTheme(savedTheme);
+      } else {
+        // Por defecto: Modo Oscuro
+        applyTheme('dark');
+      }
+
+      themeToggleBtn.addEventListener('click', () => {
+        const currentTheme = htmlEl.getAttribute('data-theme') || 'dark';
+        const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        applyTheme(nextTheme);
+        showToast(nextTheme === 'light' ? 'Modo claro activado' : 'Modo oscuro activado');
+      });
+    }
+
+    /* --------------------------------------------------------------------------
+       C. Referencias del DOM y Utilidades
+       -------------------------------------------------------------------------- */
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+
+    const formRooms = document.getElementById('form-rooms');
+    const inputRoom = document.getElementById('input-room');
+    const listRooms = document.getElementById('list-rooms');
+    const emptyRooms = document.getElementById('empty-rooms');
+    const feedbackRooms = document.getElementById('feedback-rooms');
+    const badgeRooms = document.getElementById('badge-rooms');
+
+    const formOrders = document.getElementById('form-orders');
+    const inputOrder = document.getElementById('input-order');
+    const listOrders = document.getElementById('list-orders');
+    const emptyOrders = document.getElementById('empty-orders');
+    const feedbackOrders = document.getElementById('feedback-orders');
+    const badgeOrders = document.getElementById('badge-orders');
+
+    const listHistory = document.getElementById('list-history');
+    const emptyHistory = document.getElementById('empty-history');
+    const badgeHistory = document.getElementById('badge-history');
+
+    const totalPendingText = document.getElementById('total-pending-text');
+    const toastEl = document.getElementById('toast');
+    const toastMessageEl = document.getElementById('toast-message');
+
+    let toastTimeoutId = null;
+
+    function formatRelativeDate(isoString) {
+      try {
+        const date = new Date(isoString);
+        return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) +
+          ' (' + date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) + ')';
+      } catch {
+        return 'Reciente';
+      }
+    }
+
+    function escapeHTML(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function showFeedback(element, message) {
+      element.textContent = message;
+      element.classList.add('visible');
+      setTimeout(() => {
+        element.classList.remove('visible');
+        element.textContent = '';
+      }, 3000);
+    }
+
+    function showToast(message) {
+      if (toastTimeoutId) clearTimeout(toastTimeoutId);
+      toastMessageEl.textContent = message;
+      toastEl.hidden = false;
+      toastTimeoutId = setTimeout(() => {
+        toastEl.hidden = true;
+      }, 2200);
+    }
+
+    /* --------------------------------------------------------------------------
+       D. Gestión de Pestañas (Tabs)
+       -------------------------------------------------------------------------- */
+    function setupTabs() {
+      tabButtons.forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const targetId = btn.getAttribute('data-target');
+
+          tabButtons.forEach((b) => {
+            const isActive = b === btn;
+            b.classList.toggle('active', isActive);
+            b.setAttribute('aria-selected', String(isActive));
+          });
+
+          tabPanels.forEach((panel) => {
+            const isTarget = panel.id === targetId;
+            panel.classList.toggle('active', isTarget);
+            panel.hidden = !isTarget;
+          });
+
+          // Si el usuario entra al Historial, recargar la vista desde IndexedDB
+          if (targetId === 'panel-history') {
+            await renderHistory();
+          }
+        });
+      });
+    }
+
+    /* --------------------------------------------------------------------------
+       E. Lógica CRUD con IndexedDB (Dexie.js)
+       -------------------------------------------------------------------------- */
+
+    // 1. Leer y Actualizar Contadores
+    async function updateCounters() {
+      const pendingRooms = await db.tareas
+        .where('tipo').equals('habitacion')
+        .and(t => !t.resuelta)
+        .count();
+
+      const pendingOrders = await db.tareas
+        .where('tipo').equals('pedido')
+        .and(t => !t.resuelta)
+        .count();
+
+      const resolvedCount = await db.tareas
+        .filter(t => Boolean(t.resuelta))
+        .count();
+
+      const totalPending = pendingRooms + pendingOrders;
+
+      badgeRooms.textContent = pendingRooms;
+      badgeOrders.textContent = pendingOrders;
+      badgeHistory.textContent = resolvedCount;
+
+      totalPendingText.textContent = totalPending === 1 ? '1 pendiente' : `${totalPending} pendientes`;
+
+      emptyRooms.hidden = pendingRooms > 0;
+      emptyOrders.hidden = pendingOrders > 0;
+      emptyHistory.hidden = resolvedCount > 0;
+    }
+
+    // 2. Renderizar Elementos de Habitaciones Sucias
+    function createRoomElement(item) {
+      const li = document.createElement('li');
+      li.className = 'task-item';
+      li.dataset.id = item.id;
+
+      const safeNumber = escapeHTML(item.descripcion);
+      const safeTime = escapeHTML(formatRelativeDate(item.fecha));
+
+      li.innerHTML = `
+        <div class="task-info">
+          <div class="room-badge" aria-hidden="true">
+            <span class="room-badge-label">Hab</span>
+            <span class="room-badge-number">${safeNumber}</span>
+          </div>
+          <div class="task-text-group">
+            <p class="task-primary-text">Habitación ${safeNumber}</p>
+            <div class="task-meta">
+              <span>Pendiente de aseo • ${safeTime}</span>
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="btn-resolve"
+          aria-label="Marcar habitación ${safeNumber} como limpia"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span>Resolver</span>
+        </button>
+      `;
+
+      const resolveBtn = li.querySelector('.btn-resolve');
+      resolveBtn.addEventListener('click', () => resolveTask(item.id, li, `✓ Habitación ${safeNumber} lista`));
+      return li;
+    }
+
+    // 3. Renderizar Elementos de Pedidos de Huéspedes
+    function createOrderElement(item) {
+      const li = document.createElement('li');
+      li.className = 'task-item';
+      li.dataset.id = item.id;
+
+      const safeText = escapeHTML(item.descripcion);
+      const safeTime = escapeHTML(formatRelativeDate(item.fecha));
+
+      li.innerHTML = `
+        <div class="task-info">
+          <div class="order-icon-box" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+          </div>
+          <div class="task-text-group">
+            <p class="task-primary-text">${safeText}</p>
+            <div class="task-meta">
+              <span>Solicitud activa • ${safeTime}</span>
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="btn-resolve"
+          aria-label="Resolver pedido: ${safeText}"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span>Resolver</span>
+        </button>
+      `;
+
+      const resolveBtn = li.querySelector('.btn-resolve');
+      resolveBtn.addEventListener('click', () => resolveTask(item.id, li, '✓ Pedido atendido'));
+      return li;
+    }
+
+    // 4. Renderizar Elementos del Historial
+    function createHistoryElement(item) {
+      const li = document.createElement('li');
+      li.className = 'history-item';
+      li.dataset.id = item.id;
+
+      const isRoom = item.tipo === 'habitacion';
+      const typeLabel = isRoom ? 'Habitación' : 'Pedido';
+      const safeDesc = escapeHTML(isRoom ? `Habitación ${item.descripcion}` : item.descripcion);
+      const safeTime = escapeHTML(formatRelativeDate(item.fecha));
+
+      li.innerHTML = `
+        <div class="task-info">
+          <div class="task-text-group">
+            <div style="margin-bottom: 0.3rem;">
+              <span class="history-type-badge ${isRoom ? 'habitacion' : 'pedido'}">${typeLabel}</span>
+            </div>
+            <p class="task-primary-text">${safeDesc}</p>
+            <div class="task-meta">
+              <span>Registrada: ${safeTime}</span>
+            </div>
+          </div>
+        </div>
+        <div class="history-status-badge" aria-label="Tarea resuelta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span>Resuelta</span>
+        </div>
+      `;
+      return li;
+    }
+
+    // 5. Cargar Listas de Pendientes (Habitaciones y Pedidos)
+    async function renderPendingLists() {
+      // Habitaciones pendientes
+      const pendingRooms = await db.tareas
+        .where('tipo').equals('habitacion')
+        .and(t => !t.resuelta)
+        .reverse()
+        .sortBy('id');
+
+      listRooms.innerHTML = '';
+      pendingRooms.forEach(room => listRooms.appendChild(createRoomElement(room)));
+
+      // Pedidos pendientes
+      const pendingOrders = await db.tareas
+        .where('tipo').equals('pedido')
+        .and(t => !t.resuelta)
+        .reverse()
+        .sortBy('id');
+
+      listOrders.innerHTML = '';
+      pendingOrders.forEach(order => listOrders.appendChild(createOrderElement(order)));
+
+      await updateCounters();
+    }
+
+    // 6. Cargar Pestaña de Historial (Todas las tareas resueltas ordenadas por fecha DESC)
+    async function renderHistory() {
+      const resolvedTasks = await db.tareas
+        .filter(t => Boolean(t.resuelta))
+        .toArray();
+
+      // Orden descendente por fecha
+      resolvedTasks.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+      listHistory.innerHTML = '';
+      resolvedTasks.forEach(item => listHistory.appendChild(createHistoryElement(item)));
+
+      emptyHistory.hidden = resolvedTasks.length > 0;
+      badgeHistory.textContent = resolvedTasks.length;
+    }
+
+    // 7. Añadir Habitación Sucia (Create en DB)
+    async function handleAddRoom(event) {
+      event.preventDefault();
+      const roomNumber = inputRoom.value.trim().toUpperCase();
+
+      if (!roomNumber) {
+        showFeedback(feedbackRooms, 'Por favor, ingresa el número de habitación.');
+        return;
+      }
+
+      // Validar si ya está como pendiente
+      const existing = await db.tareas
+        .where('tipo').equals('habitacion')
+        .and(t => !t.resuelta && t.descripcion.toUpperCase() === roomNumber)
+        .first();
+
+      if (existing) {
+        showFeedback(feedbackRooms, `La habitación ${roomNumber} ya figura como pendiente.`);
+        inputRoom.select();
+        return;
+      }
+
+      const newTask = {
+        tipo: 'habitacion',
+        descripcion: roomNumber,
+        resuelta: 0,
+        fecha: new Date().toISOString()
+      };
+
+      const newId = await db.tareas.add(newTask);
+      newTask.id = newId;
+
+      const el = createRoomElement(newTask);
+      listRooms.prepend(el);
+      await updateCounters();
+
+      inputRoom.value = '';
+      inputRoom.focus();
+      showToast(`Habitación ${roomNumber} añadida a pendientes`);
+    }
+
+    // 8. Añadir Pedido de Huésped (Create en DB)
+    async function handleAddOrder(event) {
+      event.preventDefault();
+      const orderText = inputOrder.value.trim();
+
+      if (!orderText) {
+        showFeedback(feedbackOrders, 'Escribe el detalle del pedido del huésped.');
+        return;
+      }
+
+      const newTask = {
+        tipo: 'pedido',
+        descripcion: orderText,
+        resuelta: 0,
+        fecha: new Date().toISOString()
+      };
+
+      const newId = await db.tareas.add(newTask);
+      newTask.id = newId;
+
+      const el = createOrderElement(newTask);
+      listOrders.prepend(el);
+      await updateCounters();
+
+      inputOrder.value = '';
+      inputOrder.focus();
+      showToast('Pedido registrado con éxito');
+    }
+
+    // 9. Resolver Tarea (Update en DB + Animación suave)
+    async function resolveTask(id, itemElement, toastMsg) {
+      if (itemElement.classList.contains('resolving')) return;
+
+      itemElement.classList.add('resolving');
+
+      // Animación suave de transición antes de quitar del DOM y actualizar DB
+      setTimeout(async () => {
+        await db.tareas.update(id, {
+          resuelta: 1,
+          fechaResolucion: new Date().toISOString()
+        });
+
+        itemElement.remove();
+        await updateCounters();
+        showToast(toastMsg);
+      }, 350);
+    }
+
+    /* --------------------------------------------------------------------------
+       F. Inicialización de la Aplicación
+       -------------------------------------------------------------------------- */
+    async function initApp() {
+      initTheme();
+      setupTabs();
+      await seedInitialDataIfEmpty();
+      await renderPendingLists();
+
+      formRooms.addEventListener('submit', handleAddRoom);
+      formOrders.addEventListener('submit', handleAddOrder);
+    }
+
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
